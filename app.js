@@ -16,8 +16,36 @@ var db = require('./db');
 var store = new SessionChallengeStore();
 const port = 3000;
 var SQLiteStore = require('connect-sqlite3')(session);
-
-// var authRouter = require('./routes/auth');
+var app = express();
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.locals.pluralize = require('pluralize');
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(multer().none());
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false, // don't save session if unmodified
+  saveUninitialized: false, // don't create session until something stored
+  store: new SQLiteStore({ db: 'sessions.db', dir: './var/db' })
+}));
+//app.use(csrf());
+app.use(passport.authenticate('session'));
+app.use(function(req, res, next) {
+  var msgs = req.session.messages || [];
+  res.locals.messages = msgs;
+  res.locals.hasMessages = !! msgs.length;
+  req.session.messages = [];
+  next();
+});
+app.use(function(req, res, next) {
+  //res.locals.csrfToken = req.csrfToken();
+  res.locals.csrfToken = 'TODO';
+  next();
+});
 passport.use(new WebAuthnStrategy({ store: store }, function verify(id, userHandle, cb) {
   db.get('SELECT * FROM public_key_credentials WHERE external_id = ?', [ id ], function(err, row) {
     if (err) { return cb(err); }
@@ -54,55 +82,16 @@ passport.use(new WebAuthnStrategy({ store: store }, function verify(id, userHand
     });
   });
 }));
-
 passport.serializeUser(function(user, cb) {
   process.nextTick(function() {
     cb(null, { id: user.id, username: user.username, name: user.name });
   });
 });
-
 passport.deserializeUser(function(user, cb) {
   process.nextTick(function() {
     return cb(null, user);
   });
 });
-
-var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.locals.pluralize = require('pluralize');
-
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(multer().none());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-  secret: 'keyboard cat',
-  resave: false, // don't save session if unmodified
-  saveUninitialized: false, // don't create session until something stored
-  store: new SQLiteStore({ db: 'sessions.db', dir: './var/db' })
-}));
-//app.use(csrf());
-app.use(passport.authenticate('session'));
-app.use(function(req, res, next) {
-  var msgs = req.session.messages || [];
-  res.locals.messages = msgs;
-  res.locals.hasMessages = !! msgs.length;
-  req.session.messages = [];
-  next();
-});
-app.use(function(req, res, next) {
-  //res.locals.csrfToken = req.csrfToken();
-  res.locals.csrfToken = 'TODO';
-  next();
-});
-
-
 app.get('/', function(req, res, next) {
   return res.redirect('/login');
 });
