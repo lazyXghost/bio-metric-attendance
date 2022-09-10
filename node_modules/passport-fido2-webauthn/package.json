@@ -1,0 +1,57 @@
+{
+  "name": "passport-fido2-webauthn",
+  "version": "0.1.0",
+  "description": "WebAuthn authentication strategy for Passport.",
+  "keywords": [
+    "passport",
+    "fido",
+    "fido2",
+    "webauthn",
+    "passkeys",
+    "yubikey"
+  ],
+  "author": {
+    "name": "Jared Hanson",
+    "email": "jaredhanson@gmail.com",
+    "url": "https://www.jaredhanson.me/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jaredhanson/passport-webauthn.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaredhanson/passport-webauthn/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/jaredhanson"
+  },
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  ],
+  "main": "./lib",
+  "dependencies": {
+    "base64url": "^3.0.1",
+    "cbor": "^8.1.0",
+    "clone": "^2.1.2",
+    "cose-to-jwk": "^1.1.0",
+    "jwk-to-pem": "^2.0.5",
+    "jws": "^4.0.0",
+    "passport-strategy": "1.x.x"
+  },
+  "devDependencies": {
+    "chai": "^4.0.0",
+    "chai-passport-strategy": "3.x.x",
+    "make-node": "^0.3.0",
+    "mocha": "^2.0.0",
+    "sinon": "^11.1.2",
+    "sinon-chai": "^3.7.0"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/mocha test/*.test.js"
+  }
+}
