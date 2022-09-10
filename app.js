@@ -103,121 +103,11 @@ app.use(function(req, res, next) {
 });
 
 
-
-var ensureLogIn = require('connect-ensure-login').ensureLoggedIn;
-var ensureLoggedIn = ensureLogIn();
-
-function fetchTodos(req, res, next) {
-  db.all('SELECT * FROM todos WHERE owner_id = ?', [
-    req.user.id
-  ], function(err, rows) {
-    if (err) { return next(err); }
-    
-    var todos = rows.map(function(row) {
-      return {
-        id: row.id,
-        title: row.title,
-        completed: row.completed == 1 ? true : false,
-        url: '/' + row.id
-      }
-    });
-    res.locals.todos = todos;
-    res.locals.activeCount = todos.filter(function(todo) { return !todo.completed; }).length;
-    res.locals.completedCount = todos.length - res.locals.activeCount;
-    next();
-  });
-}
-
 app.get('/', function(req, res, next) {
-  if (!req.user) { return res.render('home'); }
-  next();
-}, fetchTodos, function(req, res, next) {
-  res.locals.filter = null;
-  res.render('index', { user: req.user });
+  return res.redirect('/login');
 });
 
-app.get('/active', ensureLoggedIn, fetchTodos, function(req, res, next) {
-  res.locals.todos = res.locals.todos.filter(function(todo) { return !todo.completed; });
-  res.locals.filter = 'active';
-  res.render('index', { user: req.user });
-});
 
-app.get('/completed', ensureLoggedIn, fetchTodos, function(req, res, next) {
-  res.locals.todos = res.locals.todos.filter(function(todo) { return todo.completed; });
-  res.locals.filter = 'completed';
-  res.render('index', { user: req.user });
-});
-
-app.post('/', ensureLoggedIn, function(req, res, next) {
-  req.body.title = req.body.title.trim();
-  next();
-}, function(req, res, next) {
-  if (req.body.title !== '') { return next(); }
-  return res.redirect('/' + (req.body.filter || ''));
-}, function(req, res, next) {
-  db.run('INSERT INTO todos (owner_id, title, completed) VALUES (?, ?, ?)', [
-    req.user.id,
-    req.body.title,
-    req.body.completed == true ? 1 : null
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-app.post('/:id(\\d+)', ensureLoggedIn, function(req, res, next) {
-  req.body.title = req.body.title.trim();
-  next();
-}, function(req, res, next) {
-  if (req.body.title !== '') { return next(); }
-  db.run('DELETE FROM todos WHERE id = ? AND owner_id = ?', [
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-}, function(req, res, next) {
-  db.run('UPDATE todos SET title = ?, completed = ? WHERE id = ? AND owner_id = ?', [
-    req.body.title,
-    req.body.completed !== undefined ? 1 : null,
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-app.post('/:id(\\d+)/delete', ensureLoggedIn, function(req, res, next) {
-  db.run('DELETE FROM todos WHERE id = ? AND owner_id = ?', [
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-app.post('/toggle-all', ensureLoggedIn, function(req, res, next) {
-  db.run('UPDATE todos SET completed = ? WHERE owner_id = ?', [
-    req.body.completed !== undefined ? 1 : null,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-app.post('/clear-completed', ensureLoggedIn, function(req, res, next) {
-  db.run('DELETE FROM todos WHERE owner_id = ? AND completed = ?', [
-    req.user.id,
-    1
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
 
 app.get('/login', function(req, res, next) {
   res.render('login');
@@ -238,13 +128,6 @@ app.post('/login/public-key/challenge', function(req, res, next) {
   store.challenge(req, function(err, challenge) {
     if (err) { return next(err); }
     res.json({ challenge: base64url.encode(challenge) });
-  });
-});
-
-app.post('/logout', function(req, res, next) {
-  req.logout(function(err) {
-    if (err) { return next(err); }
-    res.redirect('/');
   });
 });
 
@@ -269,22 +152,28 @@ app.post('/signup/public-key/challenge', function(req, res, next) {
 
 
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// // catch 404 and forward to error handler
+// app.use(function(req, res, next) {
+//   next(createError(404));
+// });
+
+// // error handler
+// app.use(function(err, req, res, next) {
+//   // set locals, only providing error in development
+//   res.locals.message = err.message;
+//   res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+//   // render the error page
+//   res.status(err.status || 500);
+//   res.render('error');
+// });
+
+app.post('/logout', function(req, res, next) {
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    res.redirect('/');
+  });
 });
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
 app.listen(port, (err)=>{
   if(err) throw err;
   console.log(`Connection Established!! http://localhost:${port}`);
